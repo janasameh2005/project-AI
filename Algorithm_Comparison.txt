@@ -1,0 +1,201 @@
+import time
+import random
+import heapq
+
+# Problem Definition
+weights = [3, 4, 6, 5]
+profits = [2, 3, 1, 4]
+capacity = 8
+n = len(weights)
+
+items = [{"weight": weights[i], "profit": profits[i]} for i in range(n)]
+
+# Utility
+def evaluate_state(state):
+    total_weight = sum(weights[i] for i in range(n) if state[i] == 1)
+    total_profit = sum(profits[i] for i in range(n) if state[i] == 1)
+    valid = total_weight <= capacity
+    return total_profit, total_weight, valid
+
+# UCS
+def ucs_knapsack():
+    pq = [(0, 0, 0, 0)]
+    visited = set()
+    best_profit = 0
+    nodes = 0
+
+    start = time.time()
+    while pq:
+        _, idx, w, p = heapq.heappop(pq)
+        nodes += 1
+        best_profit = max(best_profit, p)
+
+        if idx == n:
+            continue
+
+        state = (idx, w)
+        if state in visited:
+            continue
+        visited.add(state)
+
+        heapq.heappush(pq, (-p, idx+1, w, p))
+        if w + weights[idx] <= capacity:
+            heapq.heappush(
+                pq,
+                (-(p + profits[idx]), idx+1, w+weights[idx], p+profits[idx])
+            )
+
+    exec_time = (time.time() - start) * 1000
+    memory = len(visited) * 16
+    return best_profit, exec_time, nodes, memory
+
+# Hill Climbing
+def hill_climbing():
+    state = [random.randint(0,1) for _ in range(n)]
+    best_profit, _, _ = evaluate_state(state)
+    nodes = 0
+
+    start = time.time()
+    while True:
+        improved = False
+        nodes += 1
+        for i in range(n):
+            new = state[:]
+            new[i] = 1 - new[i]
+            p, _, valid = evaluate_state(new)
+            if valid and p > best_profit:
+                state = new
+                best_profit = p
+                improved = True
+        if not improved:
+            break
+
+    exec_time = (time.time() - start) * 1000
+    memory = n * 4
+    return best_profit, exec_time, nodes, memory
+
+# A* Search
+def heuristic(state, remaining):
+    h = 0
+    for i in range(n):
+        if state[i] == 0 and weights[i] <= remaining:
+            h += profits[i]
+            remaining -= weights[i]
+    return h
+
+def a_star():
+    pq = [([0]*n, 0, 0)]
+    visited = set()
+    best_profit = 0
+    nodes = 0
+
+    start = time.time()
+    while pq:
+        pq.sort(key=lambda x: x[1] + heuristic(x[0], capacity-x[2]), reverse=True)
+        state, g, w = pq.pop(0)
+        nodes += 1
+
+        if tuple(state) in visited:
+            continue
+        visited.add(tuple(state))
+        best_profit = max(best_profit, g)
+
+        for i in range(n):
+            if state[i] == 0 and w + weights[i] <= capacity:
+                new = state[:]
+                new[i] = 1
+                pq.append((new, g+profits[i], w+weights[i]))
+
+    exec_time = (time.time() - start) * 1000
+    memory = len(visited) * n * 4
+    return best_profit, exec_time, nodes, memory
+
+# Genetic Algorithm
+def genetic():
+    pop_size = 10
+    generations = 40
+    population = [[random.randint(0,1) for _ in range(n)] for _ in range(pop_size)]
+    nodes = 0
+
+    def fitness(ch):
+        p, _, valid = evaluate_state(ch)
+        return p if valid else 0
+
+    start = time.time()
+    for _ in range(generations):
+        nodes += len(population)
+        population = sorted(population, key=fitness, reverse=True)
+        population = population[:pop_size//2]
+
+        while len(population) < pop_size:
+            p1, p2 = random.sample(population, 2)
+            point = random.randint(1, n-1)
+            child = p1[:point] + p2[point:]
+            if random.random() < 0.1:
+                idx = random.randint(0, n-1)
+                child[idx] = 1 - child[idx]
+            population.append(child)
+
+    best_profit = fitness(max(population, key=fitness))
+    exec_time = (time.time() - start) * 1000
+    memory = pop_size * n * 4
+    return best_profit, exec_time, nodes, memory
+
+
+ucs_res = ucs_knapsack()
+hc_res = hill_climbing()
+astar_res = a_star()
+ga_res = genetic()
+
+results = {
+    "Hill Climbing": hc_res,
+    "A* Search": astar_res,
+    "Genetic Algorithm": ga_res,
+    "UCS (Optimal)": ucs_res
+}
+
+optimal_profit = ucs_res[0]
+
+print("\n--- Final Results ---")
+best_algo = None
+best_profit = -1
+
+for algo, (profit, time_, nodes, memory) in results.items():
+    optimality = profit / optimal_profit if optimal_profit != 0 else 0
+    print(f"\n{algo}")
+    print("Profit:", profit)
+    print("Execution Time (ms):", time_)
+    print("Nodes Expanded:", nodes)
+    print("Memory Used:", memory, "bytes")
+    print("Optimality:", optimality)
+--------------------------------------------------------------------
+output:
+--- Final Results ---
+
+Hill Climbing
+Profit: 4
+Execution Time (ms): 0.013828277587890625
+Nodes Expanded: 1
+Memory Used: 16 bytes
+Optimality: 0.6666666666666666
+
+A* Search
+Profit: 6
+Execution Time (ms): 0.057220458984375
+Nodes Expanded: 9
+Memory Used: 112 bytes
+Optimality: 1.0
+
+Genetic Algorithm
+Profit: 6
+Execution Time (ms): 1.4028549194335938
+Nodes Expanded: 400
+Memory Used: 160 bytes
+Optimality: 1.0
+
+UCS (Optimal)
+Profit: 6
+Execution Time (ms): 0.023126602172851562
+Nodes Expanded: 19
+Memory Used: 192 bytes
+Optimality: 1.0
