@@ -10,29 +10,29 @@ population_size = 6
 generations = 30
 mutation_probability = 0.1
 
-# Create random chromosome
+
 def create_chromosome():
     return [random.randint(0, 1) for _ in range(num_items)]
 
-# Fitness function
+
 def fitness(chromosome):
     total_weight = 0
     total_profit = 0
-
+   
     for i in range(num_items):
         if chromosome[i] == 1:
             total_weight += weights[i]
             total_profit += profits[i]
-
+ 
     if total_weight > capacity:
         return 0
     return total_profit
 
-# 🔹 RANDOM Selection (no best)
+
 def random_selection(population):
     return random.sample(population, 2)
 
-# Random crossover
+
 def crossover(parent1, parent2):
     point = random.randint(1, num_items - 1)
     return (
@@ -40,13 +40,13 @@ def crossover(parent1, parent2):
         parent2[:point] + parent1[point:]
     )
 
-# Random mutation
+
 def mutation(chromosome):
     for i in range(num_items):
         if random.random() < mutation_probability:
             chromosome[i] = 1 - chromosome[i]
 
-# Genetic Algorithm
+
 def genetic_knapsack_random():
     start_time = time.time()
 
@@ -77,7 +77,7 @@ def genetic_knapsack_random():
 
 best, best_profit, exec_time, nodes, memory = genetic_knapsack_random()
 
-print("Best Chromosome:", best)
+print("\nBest Chromosome:", best)
 print("Maximum Profit:", best_profit)
 
 print("\nSelected Items:")
@@ -89,7 +89,7 @@ for i in range(num_items):
 
 print("\nTotal Weight:", total_weight)
 
-print("\n--- Performance Metrics ---")
+print("\n-------------------------")
 print("Execution Time:", exec_time)
 print("Nodes Expanded:", nodes)
 print("Memory Used (approx):", memory, "bytes")
